@@ -5,9 +5,7 @@ date: "4/28/2021"
 output:
   html_document: default
 ---
-Hello in the document presented here is the first homework in the "Machine Learning and Applications for Biological Data Analysis" cross.
-
-The homework deals with Exploratory Data Analysis ("EDA") on the "world happiness report 2005-2020" data set.
+Hello in the document presented Exploratory Data Analysis ("EDA") on the "world happiness report 2005-2020" data set.
 
 ```{r}
 #read data and add packages
