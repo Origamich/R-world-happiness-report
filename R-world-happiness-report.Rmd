@@ -1,0 +1,197 @@
+---
+title: "R-world-happiness-report"
+author: "Shahaf Kozokaro"
+date: "4/28/2021"
+output:
+  html_document: default
+---
+Hello in the document presented here is the first homework in the "Machine Learning and Applications for Biological Data Analysis" cross.
+
+The homework deals with Exploratory Data Analysis ("EDA") on the "world happiness report 2005-2020" data set.
+
+```{r}
+#read data and add packages
+MyData = read.csv("C:/Users/Origami/Desktop/world-happiness-report.csv" , header=TRUE)
+library(dplyr)
+library(tidyverse)
+library(knitr)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) #no error massages in final HTML
+```
+First, we will start by looking at the data
+
+```{r}
+str(MyData) #see data 
+```
+Following is a plot that shows the number of countries with available data for each year (year column)
+I will use this figure to get a feeling for the scope of the information
+```{r}
+#Quick sorting of the data by year and summary for groups. All this is done with a command that counts the number of units in each string "total = n ()"
+yearcolumcount <- MyData 
+yearcolumcount$year <- as.numeric(yearcolumcount$year)
+yearcolumcount %>%
+select(ï..Country.name, year) %>%
+group_by(yearcolumcount$year) %>%
+  summarize(total=n())
+ 
+barplot(table(yearcolumcount$year))#Summary for a bar graph
+
+
+```
+
+There are two years in which there is a shortage of data in a large number of countries.
+We can prophesy that the reason can be due to the fact that the report only began in those years (first two years) and that collecting the data from all the countries was"t possible.
+Regarding the last year, the corona crisis may have affected the ability to collect data (2020).
+
+After all the report is based on a survey and therefore requires meeting large amounts of people for questioning. What is less reasonable during an epidemic.
+
+I chose not to remove this data from the data set. That is because the questions that were asked were usually based on averages.
+This is because individual values are less influential when the data set is large and averages are been used.
+
+Next I tried to create a table that would give me the mathematical boundaries for happiness
+This is done by calculating the minimum, maximum, mean, median, and standard deviation values
+
+```{r}
+happines <- MyData %>%
+   summarize(max(Life.Ladder, na.rm = TRUE), min(Life.Ladder, na.rm = TRUE), mean(Life.Ladder, na.rm = TRUE),  median(Life.Ladder, na.rm = TRUE), sd(Life.Ladder, na.rm = TRUE))
+options(knitr.table.format = "html")
+kable(happines, digits = 3, col.names = c("Max", "Min","Mean","Median","SD"),
+      caption = "Happiness:Mathematical parameters for happiness (Life Ladder)")
+```
+Next each value is normalized to produce one long graph which contains within it all the states arranged according to their happiness (Life Ladder) values and normalized (average).
+```{r}
+
+happinesAVG <- MyData %>%  #average happiness parameter
+  group_by(ï..Country.name) %>%
+  summarize(happinesAVG = mean(Life.Ladder, na.rm = TRUE)) %>%
+  as.data.frame()
+```
+```{r}
+happinesAVG$happinesNORM <- round((happinesAVG$happinesAVG - mean(happinesAVG$happinesAVG))/sd(happinesAVG$happinesAVG), 3) #NORM=(x−μ)/σ
+happinesAVG$happinesscomper <- ifelse(happinesAVG$happinesNORM < 0, "below", "above") 
+ 
+```
+
+```{r}
+
+
+happinesAVG <- happinesAVG[order(happinesAVG$happinesNORM), ]
+happinesAVG$ï..Country.name <- factor(happinesAVG$ï..Country.name, levels = unique(happinesAVG$ï..Country.name))
+
+
+plotforhappines <- ggplot(happinesAVG, aes(x = ï..Country.name, y = happinesNORM, label = happinesNORM)) +
+         geom_bar(stat = "identity", aes(fill = happinesscomper)) +
+         scale_fill_manual(name="Happiness Score", 
+                    labels = c("Above Average", "Below Average"), 
+                    values = c("above"="paleVioletRed", "below"="thistle")) + 
+         coord_flip() +
+         labs(title = "Normalized (average) World Happiness acording For WHR 2021", x="Country" , y = "Normalized happiness score") +
+         theme_minimal() + 
+         theme(legend.position = "bottom")
+
+plotforhappines
+
+
+```
+In this section, I have chosen to focus on data reflected by the years 2011 and 2019. This is because in these years there is a large amount of data collected from many countries (as we have seen). Also, the interval of 8 years allows ass to see trends over time.
+
+```{r}
+MyDataY11Y19=filter(MyData,year %in% c("2011","2019")) #only see 2011 and 2019 years
+
+```
+In the following parts of the report, I will use interactive graphs. 
+those graphs will be used for the purpose of investigating various parameters of the WHR report. 
+
+The bass for each graph is the following:
+*point color is associated with the country
+*point size reflects its position in terms of "Life Ladder".
+*pointing on a point will display the year correlate to the data.
+```{r}
+plotcorapt <- plotly::plot_ly(MyDataY11Y19, x=MyDataY11Y19$Perceptions.of.corruption, y =MyDataY11Y19$Freedom.to.make.life.choices, 
+                     color = ~MyDataY11Y19$ï..Country.name, size = ~MyDataY11Y19$Life.Ladder, text = ~MyDataY11Y19$year ) %>% 
+                    plotly::layout(title="Corruption Vs Freedom To Make Life Choices", xaxis= list(title = "Corruption"),yaxis= list(title = "Freedom to make life choices"))
+
+htmltools::tagList(list(plotcorapt))
+```
+The graph shown above shows the relationship between freedom and corruption.
+In general, it can be seen that most countries are in the range of 0.6 to 1 in both parameters, ie corruption and freedom do not conflict.
+
+Another interesting statistic is that the number of countries with a relatively high "Life Ladder" has a low corruption rate (Denmark, Sweden, New Zealand, and Switzerland).  [see x=0.1 to 0.4, y=0.9 to 1] 
+This means that there is an inverse relationship between corruption and Life Ladder since "Life Ladder" was lower when looking at x=0.9 to 1 y= 0.1 to 0.4.
+
+If you look at the issue of trends over the years you can see that there are no clear trends. For example:
+Serbia went from a very corrupt and freedom-free country in 2011 to a very free and corruption-free country in 2019 while rising in the “Life Ladder” index.
+Singapore has become more corrupt and has hardly changed any index.
+
+In general, most countries have hardly changed those two parameters over eight years.
+
+```{r}
+plotsupport <- plotly::plot_ly(MyDataY11Y19, x=MyDataY11Y19$Social.support, y =MyDataY11Y19$Healthy.life.expectancy.at.birth, 
+                     color = ~MyDataY11Y19$ï..Country.name, size = ~MyDataY11Y19$Life.Ladder, text = ~MyDataY11Y19$year) %>% 
+                    plotly::layout(title="Social Support Vs Helthy Life Expectancy", xaxis= list(title = "Social Support"),yaxis= list(title = "Helthy Life Expectancy"))
+  
+
+
+htmltools::tagList(list(plotsupport))
+```
+The above graph shows the relationship between Social Support and Healthy Life Expectancy.
+
+A strong trend can be seen between social support and life expectancy when this is also directly supported by the "Life Ladder" parameter.
+
+A clear increase can be seen in the "Life Ladder" with an increase in each of the parameters specified earlier. When the top right corner of the graph is dominated by the countries with the highest "Life Ladder".
+
+```{r}
+plotmonye <- plotly::plot_ly(MyDataY11Y19, x=MyDataY11Y19$Perceptions.of.corruption, y =MyDataY11Y19$Log.GDP.per.capita, 
+                     color = ~MyDataY11Y19$ï..Country.name, size = ~MyDataY11Y19$Life.Ladder, text = ~MyDataY11Y19$year)%>% 
+                    plotly::layout(title="GDP Vs Corruption", xaxis= list(title = "Corruption"),yaxis= list(title = "Log GDP"))
+  
+htmltools::tagList(list(plotmonye))
+```
+The above graph shows the relationship between GDP and corruption to "Life Ladder".
+
+From the graph, it can be seen that there is a direct connection between GDP and "Life Ladder" since an increase In the GDP axis increases "Life Ladder".
+
+Regarding corruption, it seems that countries with a lower "Life Ladder" have more corruption. This is probably from other parameters such as free press which usually also affects the "Life Ladder" even though it is not represented in these graphs.
+
+Regarding countries with high GDP, it seems that there is corruption at all levels, unlike "poorer" countries where corruption is usually high (above 0.6).
+```{r}
+plotlivelong <- plotly::plot_ly(MyDataY11Y19, x=MyDataY11Y19$Log.GDP.per.capita, y =MyDataY11Y19$Generosity, 
+                     color = ~ï..Country.name, size = ~Life.Ladder, text = ~MyDataY11Y19$year)%>% 
+                    plotly::layout(title="Log GDP Vs Generosity", xaxis= list(title = "Log GDP"),yaxis= list(title = "Generosity"))
+
+
+htmltools::tagList(list(plotlivelong))
+```
+
+
+The above graph shows the relationship between GDP and Generosity.
+
+The parameter of generosity is the only one that has negative values.
+
+According to the WHR2021 website, Generosity is defined as "Generosity is the residual of regressing the national average of GWP responses to the question" Have you donated money to a charity in the past month? " on GDP per capital."
+
+The question that was asked is problematic in my opinion because donating money to charity is not the only form of generosity.
+
+This is in addition to the fact that the higher your countrie's GDP the more money you are required to give for charity.
+
+The graph does show that citizens in countries with higher "Life Ladder" donate more money for charity.
+In my opinion, it is very culture related. for example, in Israel, it is more customary to donate money. This is combined with the fact that countries with low GDP can donate other things other than money like food or property.
+Therefore, I will not try to investigate this graph further.
+
+
+In conclusion, I believe it is necessary to improve some of the questions asked in the WHR2021 survey.
+ That is to give a broader picture of what is the state of happiness in the world. Moreover, more detailed information about the population surveyed in each country can help drawing more correct conclusions.For instance, people with different income levels or from different sectors (private, public) may have different views on the state of the country.
+
+Thank you for reading :)
+
+Shahaf Kozokarם
+
+
+
+
+
+
